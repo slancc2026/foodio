@@ -12,16 +12,18 @@ export async function POST(request: NextRequest) {
 
     const enhancedPrompt = `美食摄影，菜品特写，专业灯光，诱人呈现：${prompt}`;
 
-    const response = await fetch(
+    // Step 1: Submit async task
+    const submitResponse = await fetch(
       'https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis',
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
+          'X-DashScope-Async': 'enable',
         },
         body: JSON.stringify({
-          model: 'wanx-image',
+          model: 'wanx-v1',
           input: {
             prompt: enhancedPrompt,
           },
@@ -33,66 +35,58 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    if (!response.ok) {
-      const errorText = await response.text();
+    if (!submitResponse.ok) {
+      const errorText = await submitResponse.text();
       return NextResponse.json(
-        { error: `API error: ${response.status}`, detail: errorText },
-        { status: response.status }
+        { error: `提交失败: ${submitResponse.status}`, detail: errorText },
+        { status: submitResponse.status }
       );
     }
 
-    const data = await response.json();
+    const submitData = await submitResponse.json();
+    const taskId = submitData.output?.task_id;
 
-    // 通义万相返回异步任务，需要轮询获取结果
-    if (data.output?.task_id) {
-      const taskId = data.output.task_id;
+    if (!taskId) {
+      return NextResponse.json({ error: '未获取到任务ID' }, { status: 500 });
+    }
 
-      // 轮询最多 30 秒
-      for (let i = 0; i < 30; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Step 2: Poll for result (up to 60s)
+    for (let i = 0; i < 60; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        const statusResponse = await fetch(
-          `https://dashscope.aliyuncs.com/api/v1/tasks/${taskId}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
-            },
-          }
-        );
-
-        if (statusResponse.ok) {
-          const statusData = await statusResponse.json();
-
-          if (statusData.output?.task_status === 'SUCCEEDED') {
-            const imageUrl = statusData.output?.results?.[0]?.url;
-            if (imageUrl) {
-              return NextResponse.json({ imageUrl });
-            }
-          } else if (statusData.output?.task_status === 'FAILED') {
-            return NextResponse.json(
-              { error: '图片生成失败' },
-              { status: 500 }
-            );
-          }
+      const statusResponse = await fetch(
+        `https://dashscope.aliyuncs.com/api/v1/tasks/${taskId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
+          },
         }
-      }
-
-      return NextResponse.json(
-        { error: '图片生成超时' },
-        { status: 408 }
       );
-    }
 
-    // 同步返回
-    if (data.output?.results) {
-      return NextResponse.json({
-        imageUrl: data.output.results[0]?.url,
-      });
+      if (!statusResponse.ok) continue;
+
+      const statusData = await statusResponse.json();
+      const taskStatus = statusData.output?.task_status;
+
+      if (taskStatus === 'SUCCEEDED') {
+        const results = statusData.output?.results;
+        if (results && results.length > 0) {
+          // 通义万相返回的图片URL有时效性，转成base64或使用原URL
+          const imageUrl = results[0].url;
+          return NextResponse.json({ imageUrl });
+        }
+      } else if (taskStatus === 'FAILED') {
+        return NextResponse.json(
+          { error: '图片生成失败' },
+          { status: 500 }
+        );
+      }
+      // PENDING / RUNNING 继续轮询
     }
 
     return NextResponse.json(
-      { error: '未知响应格式', data },
-      { status: 500 }
+      { error: '图片生成超时，请稍后重试' },
+      { status: 408 }
     );
   } catch (error) {
     console.error('Image generation error:', error);

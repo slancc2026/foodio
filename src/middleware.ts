@@ -1,11 +1,8 @@
-import createMiddleware from 'next-intl/middleware';
-
-export default createMiddleware({
-  locales: ['zh', 'en'],
-  defaultLocale: 'zh',
-  localeDetection: true,
-});
+// No middleware for now - i18n handled client-side
+export default function middleware() {
+  return;
+}
 
 export const config = {
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
+  matcher: [],
 };

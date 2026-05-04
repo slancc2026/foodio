@@ -18,14 +18,20 @@ export default function Navigation() {
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-8">
-            <Link href="/pricing" className="text-gray-600 hover:text-green-600 transition">
+          <div className="hidden md:flex items-center gap-6">
+            <Link href="/generate/text" className="text-gray-600 hover:text-green-600 transition text-sm">
+              文案
+            </Link>
+            <Link href="/generate/image" className="text-gray-600 hover:text-green-600 transition text-sm">
+              图片
+            </Link>
+            <Link href="/pricing" className="text-gray-600 hover:text-green-600 transition text-sm">
               定价
             </Link>
-            <Link href="/examples" className="text-gray-600 hover:text-green-600 transition">
+            <Link href="/examples" className="text-gray-600 hover:text-green-600 transition text-sm">
               示例库
             </Link>
-            <Link href="/auth/login" className="text-gray-600 hover:text-green-600 transition">
+            <Link href="/auth/login" className="text-gray-600 hover:text-green-600 transition text-sm">
               登录
             </Link>
             <Link
@@ -54,6 +60,12 @@ export default function Navigation() {
         {isOpen && (
           <div className="md:hidden pb-4 border-t border-green-100 pt-4">
             <div className="flex flex-col gap-4">
+              <Link href="/generate/text" className="text-gray-600 hover:text-green-600" onClick={() => setIsOpen(false)}>
+                文案生成
+              </Link>
+              <Link href="/generate/image" className="text-gray-600 hover:text-green-600" onClick={() => setIsOpen(false)}>
+                图片生成
+              </Link>
               <Link href="/pricing" className="text-gray-600 hover:text-green-600" onClick={() => setIsOpen(false)}>
                 定价
               </Link>
