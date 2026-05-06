@@ -1,9 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 const DASHSCOPE_API_KEY = process.env.DASHSCOPE_API_KEY || '';
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: '未登录' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (!user || user.credits < 1) {
+      return NextResponse.json(
+        { error: '点数不足', credits: 0 },
+        { status: 402 }
+      );
+    }
+
     const { prompt, size = '1024*1024' } = await request.json();
 
     if (!prompt) {
@@ -73,7 +92,23 @@ export async function POST(request: NextRequest) {
         if (results && results.length > 0) {
           // 通义万相返回的图片URL有时效性，转成base64或使用原URL
           const imageUrl = results[0].url;
-          return NextResponse.json({ imageUrl });
+
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { credits: { decrement: 1 } },
+          });
+
+          await prisma.generation.create({
+            data: {
+              userId: user.id,
+              type: 'image',
+              prompt,
+              result: imageUrl,
+              creditsUsed: 1,
+            },
+          });
+
+          return NextResponse.json({ imageUrl, credits: user.credits - 1 });
         }
       } else if (taskStatus === 'FAILED') {
         return NextResponse.json(
