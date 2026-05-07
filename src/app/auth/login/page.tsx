@@ -1,19 +1,46 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Mail, Lock } from 'lucide-react';
+import { signIn } from 'next-auth/react';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: implement actual login
-    alert('登录功能即将上线');
+    setError('');
+    setLoading(true);
+
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError('邮箱或密码错误');
+        return;
+      }
+
+      if (result?.ok) {
+        router.push('/dashboard');
+        router.refresh();
+      }
+    } catch {
+      setError('网络错误，请重试');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -26,6 +53,11 @@ export default function LoginPage() {
             <p className="text-gray-500 text-center text-sm mb-8">欢迎回来</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
+                  {error}
+                </div>
+              )}
               <div>
                 <label className="block text-sm text-gray-600 mb-1">邮箱</label>
                 <div className="relative">
@@ -56,9 +88,10 @@ export default function LoginPage() {
               </div>
               <button
                 type="submit"
-                className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-medium transition"
+                disabled={loading}
+                className="w-full bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white py-3 rounded-xl font-medium transition"
               >
-                登录
+                {loading ? '登录中...' : '登录'}
               </button>
             </form>
 
