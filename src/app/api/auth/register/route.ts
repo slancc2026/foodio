@@ -49,8 +49,9 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Registration error:', error);
+    const message = error instanceof Error ? error.message : '未知错误';
     return NextResponse.json(
-      { error: '注册失败，请稍后重试' },
+      { error: '注册失败: ' + message },
       { status: 500 }
     );
   }
