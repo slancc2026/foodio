@@ -63,14 +63,23 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const result = await alipaySdk.exec('alipay.trade.precreate', {
-    bizContent: {
-      outTradeNo,
-      totalAmount: amount.toString(),
-      subject,
-      body: description,
-    },
-  });
+  let result;
+  try {
+    result = await alipaySdk.exec('alipay.trade.precreate', {
+      bizContent: {
+        outTradeNo,
+        totalAmount: amount.toString(),
+        subject,
+        body: description,
+      },
+    });
+  } catch (e: any) {
+    console.error('Alipay precreate error:', e);
+    return NextResponse.json({
+      error: `支付宝预创建订单失败: ${e.message || e.code || '未知错误'}`,
+      details: e.data?.subCode || e.data?.subMsg || '',
+    }, { status: 502 });
+  }
 
   return NextResponse.json({
     qrCode: result.qrCode,
