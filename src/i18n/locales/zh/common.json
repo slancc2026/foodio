@@ -1,6 +1,6 @@
-{
+﻿{
   "site": {
-    "name": "FoodieMark AI",
+    "name": "Foodio AI",
     "tagline": "让你的餐厅在小红书和抖音上更受欢迎",
     "description": "AI帮你生成菜品照片、宣传文案和短视频，餐饮营销从未如此简单"
   },
@@ -23,7 +23,7 @@
     "learnMore": "了解更多"
   },
   "features": {
-    "title": "为什么选择 FoodieMark",
+    "title": "为什么选择 Foodio",
     "aiCopy": {
       "title": "AI文案",
       "desc": "输入菜品名，秒出开业宣传、促销活动、小红书种草文案"
@@ -83,7 +83,7 @@
   },
   "examples": {
     "title": "示例库",
-    "subtitle": "看看其他商家如何使用 FoodieMark",
+    "subtitle": "看看其他商家如何使用 Foodio",
     "opening": "开业宣传",
     "promotion": "促销活动",
     "xiaohongshu": "小红书种草",
@@ -112,7 +112,7 @@
     "registerLink": "去注册"
   },
   "footer": {
-    "rights": "© 2025 FoodieMark AI. All rights reserved.",
+    "rights": "© 2025 Foodio AI. All rights reserved.",
     "privacy": "隐私政策",
     "terms": "服务条款"
   }

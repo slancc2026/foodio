@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { FileText, Image, Video, Sparkles, Users, Star, TrendingUp, ArrowRight, Check, ArrowLeftRight } from 'lucide-react';
@@ -169,7 +169,7 @@ export default function Home() {
 
                 {/* 现在 */}
                 <div className="text-center md:text-left">
-                  <div className="text-xs font-semibold text-green-600 uppercase tracking-wider mb-3">现在 · FoodieMark</div>
+                  <div className="text-xs font-semibold text-green-600 uppercase tracking-wider mb-3">现在 · Foodio</div>
                   <div className="bg-green-50 rounded-xl p-4 space-y-2">
                     <div className="flex items-center gap-2 text-green-700">
                       <span className="w-2 h-2 bg-green-500 rounded-full" />

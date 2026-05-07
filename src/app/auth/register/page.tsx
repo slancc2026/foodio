@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -24,7 +24,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl p-8 shadow-sm">
             <h1 className="text-2xl font-bold text-green-800 text-center mb-2">创建账号</h1>
-            <p className="text-gray-500 text-center text-sm mb-8">免费开始使用 FoodieMark</p>
+            <p className="text-gray-500 text-center text-sm mb-8">免费开始使用 Foodio</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

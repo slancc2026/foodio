@@ -1,4 +1,4 @@
-import Navigation from '@/components/Navigation';
+﻿import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { FileText, Image } from 'lucide-react';
 
@@ -41,7 +41,7 @@ export default function ExamplesPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16 mt-8">
             <h1 className="text-4xl font-bold text-green-900 mb-4">示例库</h1>
-            <p className="text-gray-500">看看其他商家如何使用 FoodieMark 生成内容</p>
+            <p className="text-gray-500">看看其他商家如何使用 Foodio 生成内容</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">

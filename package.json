@@ -1,7 +1,7 @@
 {
-  "name": "foodie-mark",
+  "name": "foodio",
   "version": "1.0.0",
-  "description": "FoodieMark AI - 餐饮商家自媒体宣传工具",
+  "description": "Foodio AI - 餐饮商家自媒体宣传工具",
   "private": true,
   "scripts": {
     "dev": "next dev",

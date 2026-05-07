@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -32,7 +32,7 @@ export default function Navigation() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <span className="text-2xl">🦊</span>
-            <span className="font-bold text-xl text-green-800">FoodieMark</span>
+            <span className="font-bold text-xl text-green-800">Foodio</span>
           </Link>
 
           {/* Desktop Nav */}

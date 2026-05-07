@@ -1,6 +1,6 @@
-{
+﻿{
   "site": {
-    "name": "FoodieMark AI",
+    "name": "Foodio AI",
     "tagline": "Make Your Restaurant Popular on Social Media",
     "description": "AI-powered food photography, marketing copy, and short videos - restaurant marketing has never been easier"
   },
@@ -23,7 +23,7 @@
     "learnMore": "Learn More"
   },
   "features": {
-    "title": "Why FoodieMark",
+    "title": "Why Foodio",
     "aiCopy": {
       "title": "AI Copywriting",
       "desc": "Generate opening promos, event flyers, and social media posts from just your dish name"
@@ -83,7 +83,7 @@
   },
   "examples": {
     "title": "Examples",
-    "subtitle": "See how other restaurants use FoodieMark",
+    "subtitle": "See how other restaurants use Foodio",
     "opening": "Grand Opening",
     "promotion": "Promotions",
     "xiaohongshu": "Xiaohongshu Posts",
@@ -112,7 +112,7 @@
     "registerLink": "Sign Up"
   },
   "footer": {
-    "rights": "© 2025 FoodieMark AI. All rights reserved.",
+    "rights": "© 2025 Foodio AI. All rights reserved.",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service"
   }

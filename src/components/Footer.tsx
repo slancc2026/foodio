@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 
 export default function Footer() {
   return (
@@ -8,7 +8,7 @@ export default function Footer() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <span className="text-2xl">🦊</span>
-              <span className="font-bold text-lg">FoodieMark AI</span>
+              <span className="font-bold text-lg">Foodio AI</span>
             </div>
             <p className="text-green-200 text-sm">
               让AI成为你的餐饮宣传总监
@@ -24,12 +24,12 @@ export default function Footer() {
           <div>
             <h3 className="font-medium mb-4">支持</h3>
             <div className="flex flex-col gap-2 text-sm text-green-200">
-              <span>联系邮箱：support@foodiemark.ai</span>
+              <span>联系邮箱：support@Foodio.ai</span>
             </div>
           </div>
         </div>
         <div className="border-t border-green-700 mt-8 pt-8 text-center text-sm text-green-300">
-          © 2025 FoodieMark AI. All rights reserved.
+          © 2025 Foodio AI. All rights reserved.
         </div>
       </div>
     </footer>

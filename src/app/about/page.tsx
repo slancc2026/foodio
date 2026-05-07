@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Users, Image, MapPin, Heart, Sparkles, ArrowRight, Mail, Quote } from 'lucide-react';
@@ -41,7 +41,7 @@ export default function About() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
             <Sparkles size={16} />
-            关于 FoodieMark
+            关于 Foodio
           </div>
           <h1 className="text-4xl md:text-6xl font-bold text-green-900 leading-tight mb-6">
             让每一家餐馆都
@@ -90,14 +90,14 @@ export default function About() {
             <Quote size={48} className="text-green-100 absolute -top-4 -left-4" />
             <div className="pl-8">
               <p className="text-gray-600 leading-relaxed mb-6 text-lg">
-                FoodieMark 诞生于一个很简单的观察：中国有超过600万家餐饮商户，
+                Foodio 诞生于一个很简单的观察：中国有超过600万家餐饮商户，
                 其中绝大多数是小微商家。他们做菜很好吃，但完全没有精力做线上营销。
                 请摄影师太贵，写文案太费时间，拍视频更是不知从何下手。
               </p>
               <p className="text-gray-600 leading-relaxed mb-6 text-lg">
                 2025年，AI技术终于成熟到了可以真正解决这个问题的程度。
                 我们团队聚集了AI工程师、餐饮专家和品牌设计师，
-                花了半年时间打磨出 FoodieMark —— 一个让餐饮老板动动手指就能完成营销的工具。
+                花了半年时间打磨出 Foodio —— 一个让餐饮老板动动手指就能完成营销的工具。
               </p>
               <p className="text-gray-600 leading-relaxed text-lg">
                 我们的目标不是取代餐饮人的创意，而是用AI帮他们节省80%的营销时间，
@@ -139,10 +139,10 @@ export default function About() {
             有任何问题、建议或合作意向，欢迎随时联系我们
           </p>
           <a
-            href="mailto:contact@foodiemark.ai"
+            href="mailto:contact@Foodio.ai"
             className="text-green-600 hover:text-green-700 text-lg font-medium transition inline-flex items-center gap-2"
           >
-            contact@foodiemark.ai
+            contact@Foodio.ai
             <ArrowRight size={18} />
           </a>
         </div>

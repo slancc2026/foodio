@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
@@ -33,8 +33,8 @@ export async function POST(request: NextRequest) {
   const amount = isPlan ? planConfig!.price : price!;
   const creditsAmount = isPlan ? planConfig!.credits : credits!;
   const subject = isPlan
-    ? `FoodieMark ${planConfig!.name}`
-    : `FoodieMark 充值 ${creditsAmount}点`;
+    ? `Foodio ${planConfig!.name}`
+    : `Foodio 充值 ${creditsAmount}点`;
   const description = isPlan
     ? planConfig!.description
     : `一次性购买${creditsAmount}点AI生成点数`;
