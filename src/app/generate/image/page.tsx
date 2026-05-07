@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { Send, Download, Sparkles, Image as ImageIcon, Upload, X } from 'lucide-react';
+import { Send, Download, Sparkles, Image as ImageIcon, Upload, X, Coins, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 
 const styleTemplates = [
   {
@@ -51,6 +53,7 @@ const styleTemplates = [
 ];
 
 export default function ImageGeneratePage() {
+  const { data: session } = useSession();
   const [prompt, setPrompt] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -58,9 +61,27 @@ export default function ImageGeneratePage() {
   const [selectedStyle, setSelectedStyle] = useState('realistic');
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [credits, setCredits] = useState(0);
+  const [creditsLoading, setCreditsLoading] = useState(true);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetch('/api/user/credits')
+        .then((res) => res.json())
+        .then((data) => {
+          setCredits(data.credits ?? 0);
+          setCreditsLoading(false);
+        })
+        .catch(() => setCreditsLoading(false));
+    } else {
+      setCreditsLoading(false);
+    }
+  }, [session]);
+
+  const hasCredits = credits >= 1;
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || !hasCredits) return;
     setLoading(true);
     setImageUrl('');
     setError('');
@@ -78,6 +99,8 @@ export default function ImageGeneratePage() {
       const data = await response.json();
       if (data.imageUrl) {
         setImageUrl(data.imageUrl);
+        // Refresh credits after generation
+        setCredits(data.credits ?? credits - 1);
       } else {
         setError(data.error || '生成失败，请稍后再试');
       }
@@ -113,6 +136,28 @@ export default function ImageGeneratePage() {
         <div className="max-w-4xl mx-auto mt-8">
           <h1 className="text-2xl font-bold text-green-800 mb-2">图片生成</h1>
           <p className="text-gray-500 mb-8">选择风格，输入菜品名称，AI生成专业级菜品照片</p>
+
+          {/* Credits Banner */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Coins size={18} className="text-yellow-500" />
+              {creditsLoading ? (
+                <span className="text-sm text-gray-400">加载中...</span>
+              ) : (
+                <span className="text-sm text-gray-600">
+                  剩余 <strong className="text-green-700">{credits}</strong> 点
+                  <span className="text-gray-400 mx-2">·</span>
+                  每张图片消耗 <strong>1</strong> 点
+                </span>
+              )}
+            </div>
+            <Link
+              href="/pricing"
+              className="text-sm text-green-500 hover:text-green-600 font-medium"
+            >
+              充值
+            </Link>
+          </div>
 
           {/* Style Templates */}
           <div className="mb-6">
@@ -194,7 +239,7 @@ export default function ImageGeneratePage() {
             <div className="flex justify-end mt-4">
               <button
                 onClick={handleGenerate}
-                disabled={loading || !prompt.trim()}
+                disabled={loading || !prompt.trim() || !hasCredits}
                 className="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white px-8 py-2.5 rounded-full text-sm font-medium transition flex items-center gap-2"
               >
                 {loading ? (
@@ -208,6 +253,25 @@ export default function ImageGeneratePage() {
               </button>
             </div>
           </div>
+
+          {/* No Credits Warning */}
+          {!creditsLoading && !hasCredits && !loading && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6 flex items-start gap-3">
+              <AlertTriangle size={20} className="text-amber-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium text-amber-800">点数不足</p>
+                <p className="text-sm text-amber-700 mt-1">
+                  你的点数已用完，升级套餐后即可继续生成图片。
+                </p>
+                <Link
+                  href="/pricing"
+                  className="inline-block mt-3 bg-amber-500 hover:bg-amber-600 text-white px-5 py-2 rounded-full text-sm font-medium transition"
+                >
+                  查看套餐
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* Loading */}
           {loading && (

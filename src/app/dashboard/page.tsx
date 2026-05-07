@@ -1,13 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { FileText, Image, Sparkles, History, CreditCard } from 'lucide-react';
+import { FileText, Image, Sparkles, History, Coins } from 'lucide-react';
 
 export default function DashboardPage() {
-  const [credits] = useState({ used: 0, total: 2 }); // Mock data
+  const { data: session } = useSession();
+  const [userCredits, setUserCredits] = useState({ credits: 0, plan: 'free' });
+  const [creditsLoading, setCreditsLoading] = useState(true);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetch('/api/user/credits')
+        .then((res) => res.json())
+        .then((data) => {
+          setUserCredits({ credits: data.credits ?? 0, plan: data.plan ?? 'free' });
+          setCreditsLoading(false);
+        })
+        .catch(() => setCreditsLoading(false));
+    } else {
+      setCreditsLoading(false);
+    }
+  }, [session]);
+
+  const planLabels: Record<string, string> = {
+    free: '免费套餐',
+    basic: '基础套餐',
+    pro: '专业套餐',
+  };
 
   return (
     <main className="min-h-screen bg-cream">
@@ -30,17 +53,24 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-4">
               <div className="flex-1">
-                <div className="bg-gray-100 rounded-full h-3">
-                  <div
-                    className="bg-green-500 h-3 rounded-full transition-all"
-                    style={{ width: `${(credits.used / credits.total) * 100}%` }}
-                  />
-                </div>
-                <p className="text-sm text-gray-500 mt-2">
-                  {credits.used} / {credits.total} 次使用
-                </p>
+                {creditsLoading ? (
+                  <p className="text-sm text-gray-400">加载中...</p>
+                ) : (
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Coins size={24} className="text-yellow-500" />
+                      <span className="text-3xl font-bold text-green-800">{userCredits.credits}</span>
+                      <span className="text-gray-500">点</span>
+                    </div>
+                    <p className="text-sm text-gray-400 mt-1">
+                      {planLabels[userCredits.plan] || userCredits.plan}
+                    </p>
+                  </div>
+                )}
               </div>
-              <CreditCard size={32} className="text-green-400" />
+              <div className="bg-yellow-50 rounded-full p-3">
+                <Coins size={28} className="text-yellow-500" />
+              </div>
             </div>
           </div>
 

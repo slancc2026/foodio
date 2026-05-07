@@ -1,16 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { Send, Copy, Check, Sparkles } from 'lucide-react';
+import { Send, Copy, Check, Sparkles, Coins, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 
 export default function TextGeneratePage() {
+  const { data: session } = useSession();
   const [prompt, setPrompt] = useState('');
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [category, setCategory] = useState('opening');
+  const [credits, setCredits] = useState(0);
+  const [creditsLoading, setCreditsLoading] = useState(true);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetch('/api/user/credits')
+        .then((res) => res.json())
+        .then((data) => {
+          setCredits(data.credits ?? 0);
+          setCreditsLoading(false);
+        })
+        .catch(() => setCreditsLoading(false));
+    } else {
+      setCreditsLoading(false);
+    }
+  }, [session]);
+
+  const hasCredits = credits >= 1;
 
   const categoryLabels: Record<string, string> = {
     opening: '开业宣传',
@@ -27,7 +48,7 @@ export default function TextGeneratePage() {
   };
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || !hasCredits) return;
     setLoading(true);
     setResult('');
 
@@ -71,6 +92,28 @@ export default function TextGeneratePage() {
           <h1 className="text-2xl font-bold text-green-800 mb-2">文案生成</h1>
           <p className="text-gray-500 mb-8">输入需求，AI自动为你生成营销文案</p>
 
+          {/* Credits Banner */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Coins size={18} className="text-yellow-500" />
+              {creditsLoading ? (
+                <span className="text-sm text-gray-400">加载中...</span>
+              ) : (
+                <span className="text-sm text-gray-600">
+                  剩余 <strong className="text-green-700">{credits}</strong> 点
+                  <span className="text-gray-400 mx-2">·</span>
+                  每次文案生成消耗 <strong>1</strong> 点
+                </span>
+              )}
+            </div>
+            <Link
+              href="/pricing"
+              className="text-sm text-green-500 hover:text-green-600 font-medium"
+            >
+              充值
+            </Link>
+          </div>
+
           {/* Category Selector */}
           <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
             {Object.entries(categoryLabels).map(([key, label]) => (
@@ -105,7 +148,7 @@ export default function TextGeneratePage() {
               </button>
               <button
                 onClick={handleGenerate}
-                disabled={loading || !prompt.trim()}
+                disabled={loading || !prompt.trim() || !hasCredits}
                 className="bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white px-6 py-2.5 rounded-full text-sm font-medium transition flex items-center gap-2"
               >
                 {loading ? (
@@ -119,6 +162,25 @@ export default function TextGeneratePage() {
               </button>
             </div>
           </div>
+
+          {/* No Credits Warning */}
+          {!creditsLoading && !hasCredits && !loading && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6 flex items-start gap-3">
+              <AlertTriangle size={20} className="text-amber-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium text-amber-800">点数不足</p>
+                <p className="text-sm text-amber-700 mt-1">
+                  你的点数已用完，升级套餐后即可继续生成文案。
+                </p>
+                <Link
+                  href="/pricing"
+                  className="inline-block mt-3 bg-amber-500 hover:bg-amber-600 text-white px-5 py-2 rounded-full text-sm font-medium transition"
+                >
+                  查看套餐
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* Result */}
           {(result || loading) && (

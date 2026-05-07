@@ -1,11 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Menu, X, Globe } from 'lucide-react';
+import { Menu, X, Globe, Coins } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
+  const { data: session } = useSession();
+  const [credits, setCredits] = useState(0);
+  const [creditsLoading, setCreditsLoading] = useState(true);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetch('/api/user/credits')
+        .then((res) => res.json())
+        .then((data) => {
+          setCredits(data.credits ?? 0);
+          setCreditsLoading(false);
+        })
+        .catch(() => setCreditsLoading(false));
+    } else {
+      setCreditsLoading(false);
+    }
+  }, [session]);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-cream/80 backdrop-blur-md border-b border-green-100">
@@ -31,15 +49,39 @@ export default function Navigation() {
             <Link href="/examples" className="text-gray-600 hover:text-green-600 transition text-sm">
               示例库
             </Link>
-            <Link href="/auth/login" className="text-gray-600 hover:text-green-600 transition text-sm">
-              登录
-            </Link>
-            <Link
-              href="/auth/register"
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full text-sm font-medium transition"
-            >
-              免费开始
-            </Link>
+
+            {session?.user ? (
+              <>
+                {!creditsLoading && (
+                  <Link
+                    href="/pricing"
+                    className="flex items-center gap-1 text-sm font-medium text-yellow-600 bg-yellow-50 px-3 py-1.5 rounded-full hover:bg-yellow-100 transition"
+                  >
+                    <Coins size={16} />
+                    {credits}点
+                  </Link>
+                )}
+                <button
+                  onClick={() => signOut()}
+                  className="text-sm text-gray-500 hover:text-red-500 transition"
+                >
+                  退出
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login" className="text-gray-600 hover:text-green-600 transition text-sm">
+                  登录
+                </Link>
+                <Link
+                  href="/auth/register"
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full text-sm font-medium transition"
+                >
+                  免费开始
+                </Link>
+              </>
+            )}
+
             {/* Language Switcher */}
             <button className="flex items-center gap-1 text-gray-400 hover:text-green-600 transition">
               <Globe size={18} />
@@ -72,16 +114,40 @@ export default function Navigation() {
               <Link href="/examples" className="text-gray-600 hover:text-green-600" onClick={() => setIsOpen(false)}>
                 示例库
               </Link>
-              <Link href="/auth/login" className="text-gray-600 hover:text-green-600" onClick={() => setIsOpen(false)}>
-                登录
-              </Link>
-              <Link
-                href="/auth/register"
-                className="bg-green-500 text-white px-4 py-2 rounded-full text-center text-sm font-medium"
-                onClick={() => setIsOpen(false)}
-              >
-                免费开始
-              </Link>
+
+              {session?.user ? (
+                <>
+                  {!creditsLoading && (
+                    <Link
+                      href="/pricing"
+                      className="flex items-center gap-1 text-sm font-medium text-yellow-600 bg-yellow-50 px-3 py-1.5 rounded-full w-fit"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <Coins size={16} />
+                      {credits}点
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => { signOut(); setIsOpen(false); }}
+                    className="text-sm text-gray-500 hover:text-red-500 transition text-left"
+                  >
+                    退出
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth/login" className="text-gray-600 hover:text-green-600" onClick={() => setIsOpen(false)}>
+                    登录
+                  </Link>
+                  <Link
+                    href="/auth/register"
+                    className="bg-green-500 text-white px-4 py-2 rounded-full text-center text-sm font-medium"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    免费开始
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}
