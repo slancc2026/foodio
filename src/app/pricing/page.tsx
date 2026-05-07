@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Check, Loader2 } from 'lucide-react';
+import QRCode from 'qrcode';
 
 const plans = [
   {
@@ -53,6 +55,7 @@ export default function PricingPage() {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [qrImage, setQrImage] = useState<string | null>(null);
   const [qrOutTradeNo, setQrOutTradeNo] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -96,6 +99,13 @@ export default function PricingPage() {
         setQrCode(data.qrCode);
         setQrOutTradeNo(data.outTradeNo);
         setModalOpen(true);
+        // 将支付宝支付链接转为二维码图片
+        try {
+          const img = await QRCode.toDataURL(data.qrCode, { width: 256, margin: 2 });
+          setQrImage(img);
+        } catch {
+          // fallback: 直接用链接地址
+        }
         pollPaymentStatus(data.outTradeNo);
       }
     } catch (err) {
@@ -147,6 +157,10 @@ export default function PricingPage() {
         setQrCode(data.qrCode);
         setQrOutTradeNo(data.outTradeNo);
         setModalOpen(true);
+        try {
+          const img = await QRCode.toDataURL(data.qrCode, { width: 256, margin: 2 });
+          setQrImage(img);
+        } catch {}
         pollPaymentStatus(data.outTradeNo);
       }
     } catch (err) {
@@ -289,13 +303,16 @@ export default function PricingPage() {
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center">
             <h3 className="text-lg font-bold text-green-800 mb-2">扫码支付</h3>
             <p className="text-sm text-gray-500 mb-4">请使用支付宝扫码完成支付</p>
-            <div className="bg-gray-100 rounded-xl p-4 mb-4 flex items-center justify-center">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={qrCode}
-                alt="Alipay QR Code"
-                className="w-48 h-48 object-contain"
-              />
+            <div className="bg-gray-100 rounded-xl p-4 mb-4 flex items-center justify-center min-h-[200px]">
+              {qrImage ? (
+                <img
+                  src={qrImage}
+                  alt="支付宝收款二维码"
+                  className="w-48 h-48"
+                />
+              ) : (
+                <div className="text-sm text-gray-400 animate-pulse">生成二维码中...</div>
+              )}
             </div>
             <button
               onClick={() => {
