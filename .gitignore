@@ -41,3 +41,8 @@ CLAUDE.md
 .vercel
 
 .vercel
+*.tmp
+*.ps1
+.env.check
+.env.debug
+.env.production
