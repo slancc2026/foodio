@@ -67,7 +67,7 @@ export default function Home() {
   // 压缩图片防止Vercel 4.5MB body限制
   async function compressImage(file: File, maxWidth: number, quality: number): Promise<Blob> {
     return new Promise((resolve, reject) => {
-      const img = new Image();
+      const img = new window.Image();
       img.onload = () => {
         // 计算缩放尺寸，只缩小不放大
         let w = img.naturalWidth;
