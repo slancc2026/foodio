@@ -12,53 +12,60 @@ const CATEGORY_PROMPTS: Record<string, { en: string; cn: string }> = {
   bread: { cn: '烘焙甜点', en: 'Freshly baked pastries or desserts, golden crust, dusted with powdered sugar, warm amber lighting, rustic wooden surface, bakery style, realistic food photography, appetizing, shallow depth of field' },
 };
 
-async function callWanxImage(prompt: string, size: string = '1024*1024', retries: number = 3): Promise<string> {
-  for (let attempt = 0; attempt < retries; attempt++) {
+async function submitImageTask(prompt: string): Promise<string> {
+  const resp = await fetch(`${DASHSCOPE_BASE}/services/aigc/image-generation/generation`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
+      'X-DashScope-Async': 'enable',
+    },
+    body: JSON.stringify({
+      model: 'wan2.7-image',
+      input: { prompt },
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`DashScope submit error (${resp.status}): ${errText}`);
+  }
+
+  const data = await resp.json();
+  const taskId = data.output?.task_id;
+  if (!taskId) throw new Error('No task_id: ' + JSON.stringify(data));
+
+  return taskId;
+}
+
+async function pollTaskResult(taskId: string): Promise<string> {
+  const queryUrl = `${DASHSCOPE_BASE}/tasks/${taskId}`;
+
+  for (let i = 0; i < 90; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+
     try {
-      const resp = await fetch(`${DASHSCOPE_BASE}/services/aigc/text2image/image-synthesis`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DASHSCOPE_API_KEY}` },
-        body: JSON.stringify({ model: 'wanx2.1-t2i-turbo', input: { prompt }, parameters: { size, n: 1 } }),
+      const resp = await fetch(queryUrl, {
+        headers: { 'Authorization': `Bearer ${DASHSCOPE_API_KEY}` },
       });
-      if (!resp.ok) {
-        const errText = await resp.text();
-        if (resp.status === 429 && attempt < retries - 1) {
-          await new Promise((r) => setTimeout(r, 5000));
-          continue;
-        }
-        throw new Error(`DashScope API error (${resp.status}): ${errText}`);
-      }
+
+      if (!resp.ok) continue;
 
       const data = await resp.json();
-      const taskId = data.output?.task_id;
-      if (!taskId) throw new Error('No task_id: ' + JSON.stringify(data));
+      const status = data.output?.task_status;
+      const results = data.output?.results;
 
-      for (let i = 0; i < 60; i++) {
-        await new Promise((r) => setTimeout(r, 1000));
-        const queryResp = await fetch(`${DASHSCOPE_BASE}/services/aigc/text2image/image-synthesis/${taskId}`, {
-          headers: { 'Authorization': `Bearer ${DASHSCOPE_API_KEY}` },
-        });
-        if (!queryResp.ok) continue;
-        const queryData = await queryResp.json();
-        const status = queryData.output?.task_status;
-        if (status === 'SUCCEEDED') {
-          const url = queryData.output?.results?.[0]?.url;
-          if (url) return url;
-          throw new Error('No image URL');
-        } else if (status === 'FAILED') {
-          throw new Error(`Generation failed: ${queryData.output?.message || 'unknown'}`);
-        }
+      if (status === 'SUCCEEDED' && results?.[0]?.url) {
+        return results[0].url;
+      } else if (status === 'FAILED') {
+        throw new Error(`Generation failed: ${data.output?.message || 'unknown'}`);
       }
-      throw new Error('Generation timed out');
-    } catch (err: any) {
-      if (attempt < retries - 1) {
-        await new Promise((r) => setTimeout(r, 3000));
-        continue;
-      }
-      throw err;
+    } catch (e) {
+      if (i >= 89) throw e;
     }
   }
-  throw new Error('Generation failed after retries');
+
+  throw new Error('Generation timed out after 3 minutes');
 }
 
 async function downloadImageAsBase64(url: string): Promise<string> {
@@ -81,17 +88,18 @@ export async function POST(request: NextRequest) {
     const prompt = `${catPrompt.en}. The dish should maintain its original food characteristics, realistic photography style.`;
 
     const sizes = [
-      { platform: 'meituan', size: '1024*1024', desc: '美团·1:1头图' },
-      { platform: 'xiaohongshu', size: '768*1024', desc: '小红书·3:4种草' },
-      { platform: 'douyin', size: '576*1024', desc: '抖音·9:16封面' },
-      { platform: 'moments', size: '1024*1024', desc: '朋友圈·1:1分享' },
+      { platform: 'meituan', size: '1:1', desc: '美团·1:1头图' },
+      { platform: 'xiaohongshu', size: '3:4', desc: '小红书·3:4种草' },
+      { platform: 'douyin', size: '9:16', desc: '抖音·9:16封面' },
+      { platform: 'moments', size: '1:1', desc: '朋友圈·1:1分享' },
     ];
 
     const images: any[] = [];
     for (const s of sizes) {
       try {
-        await new Promise((r) => setTimeout(r, 2000));
-        const imageUrl = await callWanxImage(prompt, s.size);
+        await new Promise((r) => setTimeout(r, 1000));
+        const taskId = await submitImageTask(prompt);
+        const imageUrl = await pollTaskResult(taskId);
         const base64 = await downloadImageAsBase64(imageUrl);
         images.push({ platform: s.platform, size: s.size, desc: s.desc, url: imageUrl, base64 });
       } catch (err: any) {
