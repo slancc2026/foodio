@@ -3,16 +3,24 @@ import { NextRequest, NextResponse } from 'next/server';
 const DASHSCOPE_API_KEY = 'sk-99fb538eec714e688edb8693618c5a5d';
 const DASHSCOPE_BASE = 'https://dashscope.aliyuncs.com/api/v1';
 
-const CATEGORY_PROMPTS: Record<string, string> = {
-  light: 'A healthy light meal salad dish, fresh green vegetables, grilled chicken breast, cherry tomatoes, on a wooden table, natural lighting, clean composition, bright green and white tones, food photography style, realistic, appetizing, shallow depth of field',
-  hotpot: 'A steaming hot pot dish, boiling broth with meat slices, mushrooms, vegetables, warm red and orange tones, dim sum restaurant lighting, steam rising, rich colors, close-up shot, food photography, realistic, appetizing, dark wooden background',
-  chinese: 'A Chinese stir-fry dish, colorful vegetables and meat, wok hei aroma, warm lighting, ceramic plate, realistic food photography, appetizing, shallow depth of field, bright fresh colors',
-  fry: 'Crispy fried chicken pieces, golden brown exterior, on a rustic plate, warm amber tones, food photography, realistic, crunchy texture visible, shallow depth of field, appetizing',
-  milk: 'Milk tea or bubble tea drink in a clear glass, tapioca pearls visible, creamy layers, ice cubes, pastel pink and white tones, cafe lighting, refreshing look, food photography, realistic',
-  bread: 'Freshly baked pastries or desserts, golden crust, dusted with powdered sugar, warm amber lighting, rustic wooden surface, bakery style, realistic food photography, appetizing, shallow depth of field',
+const CATEGORY_STYLES: Record<string, string> = {
+  light: 'Fresh healthy food photo style, bright green and white tones, appetizing lighting',
+  hotpot: 'Steaming hot food photography style, warm red and orange tones, rich colors, atmospheric lighting',
+  chinese: 'Chinese cuisine food photo style, bright colors, sizzling appearance, warm lighting',
+  fry: 'Golden crispy food photo style, warm amber tones, crunchy appearance',
+  milk: 'Cafe drink photo style, pastel pink and white tones, refreshing look',
+  bread: 'Bakery food photo style, warm golden tones, freshly baked appearance',
 };
 
-async function submitImageTask(prompt: string): Promise<string> {
+async function fileToBase64(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  const base64 = buffer.toString('base64');
+  const mimeType = file.type || 'image/jpeg';
+  return `data:${mimeType};base64,${base64}`;
+}
+
+async function submitImageTask(referenceImageBase64: string, stylePrompt: string): Promise<string> {
   const resp = await fetch(`${DASHSCOPE_BASE}/services/aigc/image-generation/generation`, {
     method: 'POST',
     headers: {
@@ -24,7 +32,12 @@ async function submitImageTask(prompt: string): Promise<string> {
       model: 'wan2.7-image',
       input: {
         messages: [
-          { role: 'user', content: [{ text: prompt }] },
+          {
+            role: 'user',
+            content: [
+              { image: referenceImageBase64, text: `Generate a professional food photo based on the reference dish image. Style: ${stylePrompt}. Keep the dish identity (same type of food), enhance appearance professionally.` },
+            ],
+          },
         ],
       },
     }),
@@ -70,7 +83,7 @@ async function pollTaskResult(taskId: string): Promise<string> {
     }
   }
 
-  throw new Error('Generation timed out after 3 minutes');
+  throw new Error('Generation timed out');
 }
 
 export async function POST(request: NextRequest) {
@@ -80,17 +93,20 @@ export async function POST(request: NextRequest) {
     const category = formData.get('category') as string;
 
     if (!file) return NextResponse.json({ error: '请上传菜品照片' }, { status: 400 });
-    if (!category || !CATEGORY_PROMPTS[category]) return NextResponse.json({ error: '请选择有效品类' }, { status: 400 });
+    if (!category || !CATEGORY_STYLES[category]) return NextResponse.json({ error: '请选择有效品类' }, { status: 400 });
 
-    const prompt = `Generate a restaurant food photo: ${CATEGORY_PROMPTS[category]}`;
+    const stylePrompt = CATEGORY_STYLES[category];
 
-    const taskId = await submitImageTask(prompt);
+    // 把上传的图片转成base64
+    const imageBase64 = await fileToBase64(file);
+
+    const taskId = await submitImageTask(imageBase64, stylePrompt);
     const imageUrl = await pollTaskResult(taskId);
 
-    // 下载图片做base64返回给前端
+    // 下载生成结果图
     const imageResp = await fetch(imageUrl);
     const buffer = await imageResp.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString('base64');
+    const resultBase64 = Buffer.from(buffer).toString('base64');
 
     const sizes = [
       { platform: 'meituan', size: '1:1', desc: '美团·1:1头图' },
@@ -99,13 +115,12 @@ export async function POST(request: NextRequest) {
       { platform: 'moments', size: '1:1', desc: '朋友圈·1:1分享' },
     ];
 
-    // 首版先用一张图展示4个平台，后续再优化为每平台独立生成
     const images = sizes.map((s) => ({
       platform: s.platform,
       size: s.size,
       desc: s.desc,
       url: imageUrl,
-      base64: `data:image/png;base64,${base64}`,
+      base64: `data:image/png;base64,${resultBase64}`,
     }));
 
     return NextResponse.json({ success: true, category: category, images });
