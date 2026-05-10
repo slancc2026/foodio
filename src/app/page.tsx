@@ -64,6 +64,37 @@ export default function Home() {
   const [generateError, setGenerateError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 压缩图片防止Vercel 4.5MB body限制
+  async function compressImage(file: File, maxWidth: number, quality: number): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        // 计算缩放尺寸，只缩小不放大
+        let w = img.naturalWidth;
+        let h = img.naturalHeight;
+        if (w > maxWidth) {
+          h = Math.round(h * (maxWidth / w));
+          w = maxWidth;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, w, h);
+
+        // 优先webp，否则fallback到jpeg
+        const mime = canvas.toDataURL('image/webp').startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg';
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('图片压缩失败'));
+        }, mime, quality);
+      };
+      img.onerror = () => reject(new Error('图片加载失败'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -96,7 +127,10 @@ export default function Home() {
 
     try {
       const formData = new FormData();
-      formData.append('image', image);
+
+      // 压缩图片到最大1200px宽，WebP格式85%质量
+      const compressedBlob = await compressImage(image, 1200, 0.85);
+      formData.append('image', compressedBlob, image.name.replace(/\.[^.]+$/, '') + '.webp');
       formData.append('category', category);
 
       const resp = await fetch('/api/generate/foodie', {
