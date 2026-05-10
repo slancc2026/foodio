@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: '上传菜品照片，一站式生成美团、小红书、抖音、朋友圈营销物料',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: {
