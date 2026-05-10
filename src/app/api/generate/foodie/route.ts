@@ -31,29 +31,38 @@ const CATEGORY_PROMPTS: Record<string, { en: string; cn: string }> = {
   },
 };
 
-async function callWanxImage(prompt: string, size: string = '1024*1024'): Promise<string> {
-  const resp = await fetch(`${DASHSCOPE_BASE}/services/aigc/text2image/image-synthesis`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'wanx2.1-t2i-turbo',
-      input: {
-        prompt,
-      },
-      parameters: {
-        size,
-        n: 1,
-      },
-    }),
-  });
+async function callWanxImage(prompt: string, size: string = '1024*1024', retries: number = 3): Promise<string> {
+  let lastError: Error | null = null;
 
-  if (!resp.ok) {
-    const errText = await resp.text();
-    throw new Error(`DashScope API error (${resp.status}): ${errText}`);
-  }
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const resp = await fetch(`${DASHSCOPE_BASE}/services/aigc/text2image/image-synthesis`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'wanx2.1-t2i-turbo',
+          input: {
+            prompt,
+          },
+          parameters: {
+            size,
+            n: 1,
+          },
+        }),
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        if (resp.status === 429 && attempt < retries - 1) {
+          // 限流时等待5秒重试
+          await new Promise((r) => setTimeout(r, 5000));
+          continue;
+        }
+        throw new Error(`DashScope API error (${resp.status}): ${errText}`);
+      }
 
   const data = await resp.json();
 
@@ -120,7 +129,7 @@ export async function POST(request: NextRequest) {
     const catPrompt = CATEGORY_PROMPTS[category];
     const prompt = `${catPrompt.en}. The dish should maintain its original food characteristics, realistic photography style.`;
 
-    // 生成4个平台的图片（不同尺寸）
+    // 首次免费额度低，串行生成 + 间隔，减少限流
     const sizes = [
       { platform: 'meituan', size: '1024*1024', desc: '美团·1:1头图' },
       { platform: 'xiaohongshu', size: '768*1024', desc: '小红书·3:4种草' },
@@ -128,34 +137,31 @@ export async function POST(request: NextRequest) {
       { platform: 'moments', size: '1024*1024', desc: '朋友圈·1:1分享' },
     ];
 
-    // 并行生成（实际可优化为队列，首版直接并发）
-    const results = await Promise.allSettled(
-      sizes.map(async (s) => {
+    // 串行生成，每次至少间隔2秒避免限流
+    const images: any[] = [];
+    for (const s of sizes) {
+      try {
+        await new Promise((r) => setTimeout(r, 2000));
         const imageUrl = await callWanxImage(prompt, s.size);
         const base64 = await downloadImageAsBase64(imageUrl);
-        return {
+        images.push({
           platform: s.platform,
           size: s.size,
           desc: s.desc,
           url: imageUrl,
           base64,
-        };
-      })
-    );
-
-    const images = results.map((r, i) => {
-      if (r.status === 'fulfilled') {
-        return r.value;
+        });
+      } catch (err: any) {
+        images.push({
+          platform: s.platform,
+          size: s.size,
+          desc: s.desc,
+          url: null,
+          base64: null,
+          error: err.message || '生成失败',
+        });
       }
-      return {
-        platform: sizes[i].platform,
-        size: sizes[i].size,
-        desc: sizes[i].desc,
-        url: null,
-        base64: null,
-        error: r.reason?.message || '生成失败',
-      };
-    });
+    }
 
     return NextResponse.json({
       success: true,
