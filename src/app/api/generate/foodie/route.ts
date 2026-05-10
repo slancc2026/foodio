@@ -35,7 +35,8 @@ async function submitImageTask(referenceImageBase64: string, stylePrompt: string
           {
             role: 'user',
             content: [
-              { image: referenceImageBase64, text: `Generate a professional food photo based on the reference dish image. Style: ${stylePrompt}. Keep the dish identity (same type of food), enhance appearance professionally.` },
+              { image: referenceImageBase64 },
+              { text: `Generate a professional food photo based on the reference dish image. Style: ${stylePrompt}. Keep the dish identity (same type of food), enhance appearance professionally.` },
             ],
           },
         ],
