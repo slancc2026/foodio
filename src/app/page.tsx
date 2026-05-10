@@ -1,226 +1,341 @@
-﻿import Link from 'next/link';
+'use client';
+
+import { useState, useCallback, useRef } from 'react';
+import Image from 'next/image';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import { FileText, Image, Video, Sparkles, Users, Star, TrendingUp, ArrowRight, Check, ArrowLeftRight } from 'lucide-react';
+import { Upload, Sparkles, Download, Check, ArrowRight, ImageIcon, ChevronRight, Loader2 } from 'lucide-react';
 
-const features = [
+const CATEGORIES = [
+  { id: 'light', name: '轻食沙拉', emoji: '🥗', color: 'bg-green-50 text-green-700 border-green-200', accent: 'bg-green-500' },
+  { id: 'hotpot', name: '火锅烧烤', emoji: '🍲', color: 'bg-red-50 text-red-700 border-red-200', accent: 'bg-red-500' },
+  { id: 'chinese', name: '中餐炒菜', emoji: '🥘', color: 'bg-orange-50 text-orange-700 border-orange-200', accent: 'bg-orange-500' },
+  { id: 'fry', name: '炸鸡小吃', emoji: '🍗', color: 'bg-yellow-50 text-yellow-700 border-yellow-200', accent: 'bg-yellow-500' },
+  { id: 'milk', name: '奶茶饮品', emoji: '🧋', color: 'bg-pink-50 text-pink-700 border-pink-200', accent: 'bg-pink-500' },
+  { id: 'bread', name: '烘焙甜点', emoji: '🥐', color: 'bg-amber-50 text-amber-700 border-amber-200', accent: 'bg-amber-500' },
+];
+
+const PLATFORMS = [
+  { id: 'xiaohongshu', name: '小红书', ratio: '3:4', desc: '种草风' },
+  { id: 'meituan', name: '美团', ratio: '1:1', desc: '头图风' },
+  { id: 'douyin', name: '抖音', ratio: '9:16', desc: '打卡风' },
+  { id: 'moments', name: '朋友圈', ratio: '1:1', desc: '社交风' },
+];
+
+const FEATURES = [
   {
-    icon: FileText,
-    title: 'AI文案',
-    desc: '输入菜名，秒出小红书爆款文案',
-    color: 'text-green-500',
-    bg: 'bg-green-50',
-  },
-  {
-    icon: Image,
-    title: 'AI美食摄影',
-    desc: '不用摄影师，AI拍出高级菜品图',
-    color: 'text-orange-500',
-    bg: 'bg-orange-50',
-  },
-  {
-    icon: Video,
-    title: 'AI短视频',
-    desc: '图文一键转视频，适配抖音小红书',
+    icon: Upload,
+    title: '上传菜品照片',
+    desc: '手机拍一张菜品的照片，上传即可',
     color: 'text-green-500',
     bg: 'bg-green-50',
   },
   {
     icon: Sparkles,
-    title: '全自动营销',
-    desc: '从想法到发布，3步全部搞定',
+    title: 'AI自动生成全套',
+    desc: '8秒出图，多尺寸适配各平台',
     color: 'text-orange-500',
     bg: 'bg-orange-50',
   },
-];
-
-const testimonials = [
   {
-    emoji: '👩‍🍳',
-    name: '成都·川味小馆 老板娘',
-    quote: '以前请摄影师拍菜要两千，现在手机上说句话就出图了，太香了。',
-    result: '月订单 +40%',
-  },
-  {
-    emoji: '👨‍🍳',
-    name: '深圳·轻食沙拉 老板',
-    quote: '小红书一周没更新，用AI十分钟做了三条，直接来了两桌新客。',
-    result: '粉丝涨了 2000+',
-  },
-  {
-    emoji: '🧑‍🍳',
-    name: '杭州·面馆小胖',
-    quote: '文化程度不高，不会写文案。现在对着手机说菜名就能发朋友圈了。',
-    result: '日营业额 +800',
+    icon: Download,
+    title: '直接发布',
+    desc: '免注册预览效果，满意再下载',
+    color: 'text-green-500',
+    bg: 'bg-green-50',
   },
 ];
 
-const stats = [
-  { icon: Users, value: '12,000+', label: '注册商户' },
-  { icon: Image, value: '86,000+', label: 'AI生成图片' },
-  { icon: TrendingUp, value: '230+', label: '覆盖城市' },
-];
-
-const plans = [
-  {
-    name: '免费体验',
-    price: '0',
-    period: '',
-    description: '适合初次体验',
-    features: ['2张AI图片', '基础文案模板', '示例浏览'],
-    cta: '免费试用',
-    href: '/auth/register',
-    highlight: false,
-  },
-  {
-    name: '基础版',
-    price: '99',
-    period: '/月',
-    description: '适合起步阶段',
-    features: ['20张AI图片', '10个AI视频', '不限文案', '小红书模板', '标准支持'],
-    cta: '立即订阅',
-    href: '/auth/register',
-    highlight: true,
-  },
-  {
-    name: '专业版',
-    price: '299',
-    period: '/月',
-    description: '适合持续运营',
-    features: ['100张AI图片', '40个AI视频', '不限文案', '全部风格', '优先支持', '品牌定制色'],
-    cta: '立即订阅',
-    href: '/auth/register',
-    highlight: false,
-  },
+const TEMPLATE_EXAMPLES = [
+  { name: '轻食·美团头图', cat: 'light', color: 'bg-green-50' },
+  { name: '轻食·小红书种草', cat: 'light', color: 'bg-green-50' },
+  { name: '火锅·抖音封面', cat: 'hotpot', color: 'bg-red-50' },
+  { name: '火锅·朋友圈', cat: 'hotpot', color: 'bg-red-50' },
 ];
 
 export default function Home() {
+  const [image, setImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [category, setCategory] = useState<string>('');
+  const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [resultImages, setResultImages] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImage(file);
+    setImagePreview(URL.createObjectURL(file));
+    setGenerated(false);
+    setResultImages([]);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    setImage(file);
+    setImagePreview(URL.createObjectURL(file));
+    setGenerated(false);
+    setResultImages([]);
+  }, []);
+
+  const handleGenerate = useCallback(async () => {
+    if (!image || !category || generating) return;
+    setGenerating(true);
+    setProgress(0);
+
+    // Simulate progress for now (actual API call later)
+    const totalSteps = 8;
+    for (let i = 1; i <= totalSteps; i++) {
+      await new Promise(r => setTimeout(r, 800));
+      setProgress(Math.round((i / totalSteps) * 100));
+    }
+
+    // Placeholder: will integrate with 通义万相 API
+    setResultImages([
+      '/placeholder-result-1.jpg',
+      '/placeholder-result-2.jpg',
+      '/placeholder-result-3.jpg',
+      '/placeholder-result-4.jpg',
+    ]);
+    setGenerating(false);
+    setGenerated(true);
+  }, [image, category, generating]);
+
+  const resetAll = useCallback(() => {
+    setImage(null);
+    setImagePreview(null);
+    setCategory('');
+    setGenerated(false);
+    setResultImages([]);
+    setProgress(0);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, []);
+
+  const selectedCategory = CATEGORIES.find(c => c.id === category);
+
   return (
-    <main className="min-h-screen bg-cream">
+    <main className="min-h-screen bg-gradient-to-b from-white via-green-50/30 to-white">
       <Navigation />
 
-      {/* Hero */}
-      <section className="pt-32 pb-28 px-4">
+      {/* Hero Section */}
+      <section className="pt-24 pb-8 px-4">
         <div className="max-w-5xl mx-auto text-center">
-          {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium mb-6 animate-fade-in">
             <Sparkles size={16} />
-            AI驱动的餐饮营销工具
+            餐饮商家 · 多平台获客引擎
           </div>
-
-          {/* Headline */}
           <h1 className="text-4xl md:text-6xl font-bold text-green-900 leading-tight mb-4">
-            把精力还给灶台，
+            上传菜品照片
             <br />
-            <span className="text-orange-500">把流量交给AI</span>
+            <span className="text-orange-500">一站式生成营销物料</span>
           </h1>
-
-          {/* Subheadline */}
           <p className="text-lg text-gray-500 max-w-xl mx-auto mb-10 leading-relaxed">
-            不用摄影师、不用写手、不用剪辑师。<br />
-            对着手机说句话，AI帮你搞定菜品拍照、文案和短视频。
+            美团头图 · 小红书种草 · 抖音封面 · 朋友圈分享<br />
+            一次上传，全平台适配
           </p>
-
-          {/* CTA */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-20">
-            <Link
-              href="/auth/register"
-              className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-full text-lg font-medium transition shadow-lg shadow-green-200 hover:shadow-xl hover:shadow-green-200 hover:-translate-y-0.5 active:translate-y-0"
-            >
-              免费开始使用
-            </Link>
-            <Link
-              href="/examples"
-              className="border border-green-300 text-green-700 hover:bg-green-50 px-8 py-3 rounded-full text-lg font-medium transition hover:-translate-y-0.5 active:translate-y-0"
-            >
-              看看效果 →
-            </Link>
-          </div>
-
-          {/* Demo对比区 */}
-          <div className="max-w-3xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-lg shadow-green-100/50 p-6 md:p-8">
-              <div className="grid md:grid-cols-2 gap-6 items-center">
-                {/* 以前 */}
-                <div className="text-center md:text-left">
-                  <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">以前</div>
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <span className="w-2 h-2 bg-gray-300 rounded-full" />
-                      <span className="text-sm">请摄影师：¥2000+</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <span className="w-2 h-2 bg-gray-300 rounded-full" />
-                      <span className="text-sm">写文案：2小时</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <span className="w-2 h-2 bg-gray-300 rounded-full" />
-                      <span className="text-sm">剪视频：半天</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 箭头（桌面端显示） */}
-                <div className="hidden md:flex justify-center">
-                  <div className="bg-green-100 rounded-full p-3">
-                    <ArrowRight size={24} className="text-green-600" />
-                  </div>
-                </div>
-
-                {/* 现在 */}
-                <div className="text-center md:text-left">
-                  <div className="text-xs font-semibold text-green-600 uppercase tracking-wider mb-3">现在 · Foodio</div>
-                  <div className="bg-green-50 rounded-xl p-4 space-y-2">
-                    <div className="flex items-center gap-2 text-green-700">
-                      <span className="w-2 h-2 bg-green-500 rounded-full" />
-                      <span className="text-sm font-medium">AI出图：¥0</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-green-700">
-                      <span className="w-2 h-2 bg-green-500 rounded-full" />
-                      <span className="text-sm font-medium">AI文案：3分钟</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-green-700">
-                      <span className="w-2 h-2 bg-green-500 rounded-full" />
-                      <span className="text-sm font-medium">AI视频：5分钟</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="py-16 px-4 bg-green-600">
-        <div className="max-w-5xl mx-auto grid grid-cols-3 gap-8">
-          {stats.map((stat, index) => (
-            <div key={index} className="text-center text-white">
-              <stat.icon size={28} className="mx-auto mb-2 text-green-200" />
-              <div className="text-3xl md:text-4xl font-bold mb-1">{stat.value}</div>
-              <div className="text-sm text-green-100">{stat.label}</div>
+      {/* Main Generator Section */}
+      <section className="px-4 pb-16">
+        <div className="max-w-5xl mx-auto">
+          <div className="bg-white rounded-3xl shadow-xl shadow-green-100/40 border border-green-100/50 overflow-hidden">
+            {/* Step indicator */}
+            <div className="flex items-center justify-center gap-2 px-6 pt-6 pb-2 text-sm text-gray-400">
+              <span className={`flex items-center gap-1 ${imagePreview ? 'text-green-600 font-medium' : ''}`}>
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${imagePreview ? 'bg-green-500 text-white' : 'bg-gray-200'}`}>1</span>
+                上传照片
+              </span>
+              <ChevronRight size={14} className={imagePreview ? 'text-green-400' : ''} />
+              <span className={`flex items-center gap-1 ${category ? 'text-green-600 font-medium' : ''}`}>
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${category ? 'bg-green-500 text-white' : 'bg-gray-200'}`}>2</span>
+                选择品类
+              </span>
+              <ChevronRight size={14} className={imagePreview && category ? 'text-green-400' : ''} />
+              <span className={`flex items-center gap-1 ${generated ? 'text-green-600 font-medium' : ''}`}>
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${generated ? 'bg-green-500 text-white' : 'bg-gray-200'}`}>3</span>
+                获取物料
+              </span>
             </div>
-          ))}
+
+            <div className="p-6 md:p-8">
+              {!imagePreview ? (
+                /* Step 1: Upload */
+                <div
+                  onDrop={handleDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-green-200 rounded-2xl p-12 md:p-20 text-center cursor-pointer hover:border-green-400 hover:bg-green-50/50 transition-all group"
+                >
+                  <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
+                    <Upload size={28} className="text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-green-800 mb-2">上传菜品照片</h3>
+                  <p className="text-sm text-gray-500 mb-1">手机拍的菜品照片就行</p>
+                  <p className="text-xs text-gray-400">支持 JPG / PNG / WebP</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </div>
+              ) : (
+                /* Uploaded preview + Category selection */
+                <div className="space-y-6">
+                  <div className="flex flex-col md:flex-row gap-6">
+                    {/* Preview */}
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-500 mb-2 flex items-center gap-2">
+                        <ImageIcon size={14} />
+                        你的菜品照片
+                      </div>
+                      <div className="relative aspect-[4/3] bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
+                        {imagePreview && (
+                          <img
+                            src={imagePreview}
+                            alt="菜品预览"
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <button
+                        onClick={resetAll}
+                        className="text-xs text-gray-400 hover:text-red-500 mt-2 transition"
+                      >
+                        重新上传
+                      </button>
+                    </div>
+
+                    {/* Category + Generate */}
+                    <div className="flex-1 space-y-4">
+                      <div>
+                        <div className="text-sm font-medium text-gray-500 mb-3">选择品类</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {CATEGORIES.map((cat) => (
+                            <button
+                              key={cat.id}
+                              onClick={() => setCategory(cat.id)}
+                              className={`px-3 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                                category === cat.id
+                                  ? `${cat.color} ring-2 ring-offset-1 ${cat.accent.replace('bg-', 'ring-')}/30`
+                                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <span className="mr-1.5">{cat.emoji}</span>
+                              {cat.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleGenerate}
+                        disabled={!category || generating}
+                        className={`w-full py-3.5 rounded-xl font-medium transition flex items-center justify-center gap-2 ${
+                          !category || generating
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-200'
+                        }`}
+                      >
+                        {generating ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            生成中 {progress}%
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={18} />
+                            一键生成全套物料
+                          </>
+                        )}
+                      </button>
+
+                      {generating && (
+                        <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                          <div
+                            className="h-full bg-green-500 rounded-full transition-all duration-500 ease-out"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Generated Results */}
+              {generated && (
+                <div className="mt-8 pt-6 border-t border-gray-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold text-green-800 flex items-center gap-2">
+                        <Check size={18} className="text-green-600" />
+                        生成完成！
+                      </h3>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {selectedCategory?.emoji} {selectedCategory?.name} · 全平台适配
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => alert('注册后可下载无水印高清版')}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition flex items-center gap-1.5"
+                    >
+                      <Download size={14} />
+                      下载全套
+                    </button>
+                  </div>
+
+                  {/* Mock result display */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {PLATFORMS.map((platform, i) => (
+                      <div key={platform.id} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                        <div className="text-xs font-medium text-gray-400 mb-2 text-center">{platform.name} · {platform.ratio}</div>
+                        <div className={`${platform.ratio === '9:16' ? 'aspect-[9/16]' : 'aspect-square'} bg-gradient-to-br from-green-100 via-white to-orange-50 rounded-lg flex items-center justify-center border border-gray-100`}>
+                          <div className="text-center p-2">
+                            <div className="text-2xl mb-1">{selectedCategory?.emoji || '🍽️'}</div>
+                            <div className="text-[10px] text-gray-400">{platform.desc}</div>
+                            <div className="text-[10px] font-medium text-green-600 mt-1">FoodieMark</div>
+                          </div>
+                        </div>
+                        <div className="text-[10px] text-gray-400 mt-1.5 text-center">预览带水印 · 注册后可下载</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Note */}
+                  <div className="mt-4 text-center">
+                    <p className="text-xs text-gray-400">
+                      免费预览带水印 · 下载无水印高清版请
+                      <button className="text-green-600 font-medium hover:underline ml-1">注册</button>
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Features */}
-      <section className="py-24 px-4 bg-white">
+      <section className="py-16 px-4 bg-white">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-green-900 mb-3">
-            不止是AI工具
+          <h2 className="text-3xl font-bold text-center text-green-900 mb-3">
+            三步搞定餐饮营销
           </h2>
-          <p className="text-gray-500 text-center mb-14 max-w-md mx-auto text-lg">
-            是你的线上营销部
+          <p className="text-gray-500 text-center mb-12 max-w-md mx-auto">
+            不用摄影师、不用设计师、不用写文案
           </p>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {features.map((feature, index) => (
-              <div
-                key={index}
-                className="bg-cream rounded-2xl p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-default"
-              >
-                <div className={`w-11 h-11 ${feature.bg} rounded-xl flex items-center justify-center mb-4`}>
-                  <feature.icon size={22} className={feature.color} />
+          <div className="grid md:grid-cols-3 gap-8">
+            {FEATURES.map((feature, index) => (
+              <div key={index} className="text-center">
+                <div className={`w-14 h-14 ${feature.bg} rounded-2xl flex items-center justify-center mx-auto mb-4`}>
+                  <feature.icon size={26} className={feature.color} />
                 </div>
                 <h3 className="font-semibold text-green-800 mb-2">{feature.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
@@ -230,114 +345,102 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-24 px-4">
+      {/* Template Showcase */}
+      <section className="py-16 px-4">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-green-900 mb-3">
-            餐饮老板都在用
+          <h2 className="text-3xl font-bold text-center text-green-900 mb-3">
+            品类专属模板
           </h2>
-          <p className="text-gray-500 text-center mb-14 max-w-md mx-auto text-lg">
-            听听他们怎么说
+          <p className="text-gray-500 text-center mb-12 max-w-md mx-auto">
+            每个品类都有适配的色调、字体和排版
           </p>
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((item, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-2xl p-6 border border-green-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">{item.emoji}</span>
-                  <div>
-                    <div className="font-medium text-green-800 text-sm">{item.name}</div>
-                    <div className="flex items-center gap-0.5">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} size={12} className="fill-orange-400 text-orange-400" />
-                      ))}
-                    </div>
-                  </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {TEMPLATE_EXAMPLES.map((tpl, i) => (
+              <div key={i} className={`${tpl.color} rounded-2xl p-6 text-center border border-gray-100 hover:shadow-md transition`}>
+                <div className="text-3xl mb-2">
+                  {tpl.cat === 'light' ? '🥗' : '🍲'}
                 </div>
-                <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                  &ldquo;{item.quote}&rdquo;
-                </p>
-                <div className="text-orange-500 font-semibold text-sm flex items-center gap-1">
-                  <TrendingUp size={14} />
-                  {item.result}
-                </div>
+                <div className="text-sm font-medium text-green-800">{tpl.name}</div>
+                <div className="text-xs text-gray-400 mt-1">一键生成</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Pricing */}
-      <section className="py-24 px-4 bg-white">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-green-900 mb-3">
-            简单透明的定价
+      {/* Steps */}
+      <section className="py-16 px-4 bg-green-600">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl font-bold text-white mb-3">
+            对比即惊喜
           </h2>
-          <p className="text-gray-500 text-center mb-14">按需选择，随时升级</p>
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {plans.map((plan, index) => (
-              <div
-                key={index}
-                className={`rounded-2xl p-7 ${
-                  plan.highlight
-                    ? 'bg-green-500 text-white ring-4 ring-green-200 scale-105 shadow-xl'
-                    : 'bg-cream'
-                }`}
-              >
-                <h3 className={`text-xl font-bold mb-1 ${plan.highlight ? 'text-white' : 'text-green-800'}`}>
-                  {plan.name}
-                </h3>
-                <p className={`text-sm mb-4 ${plan.highlight ? 'text-green-100' : 'text-gray-500'}`}>
-                  {plan.description}
-                </p>
-                <div className="mb-5">
-                  <span className="text-4xl font-bold">¥{plan.price}</span>
-                  <span className={`text-sm ${plan.highlight ? 'text-green-100' : 'text-gray-400'}`}>
-                    {plan.period}
-                  </span>
-                </div>
-                <ul className="space-y-2.5 mb-7">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <Check size={15} className={plan.highlight ? 'text-white shrink-0 mt-0.5' : 'text-green-500 shrink-0 mt-0.5'} />
-                      <span className={plan.highlight ? 'text-green-50' : 'text-gray-600'}>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href={plan.href}
-                  className={`block text-center py-3 rounded-full font-medium transition ${
-                    plan.highlight
-                      ? 'bg-white text-green-600 hover:bg-green-50'
-                      : 'border border-green-300 text-green-700 hover:bg-green-50'
-                  }`}
-                >
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
+          <p className="text-green-100 mb-8 max-w-lg mx-auto">
+            以前：请摄影师¥500+写文案2小时剪视频半天 <br />
+            现在：上传照片8秒搞定
+          </p>
+          <div className="flex justify-center gap-4 flex-wrap">
+            <div className="bg-white/10 rounded-2xl p-6 text-white border border-white/20">
+              <div className="text-sm opacity-60 mb-2">以前</div>
+              <div className="text-xl font-bold line-through opacity-50">¥500+ 2天</div>
+            </div>
+            <div className="bg-white/20 rounded-2xl p-6 text-white border border-white/30">
+              <div className="text-sm opacity-80 mb-2">现在</div>
+              <div className="text-xl font-bold">上传 → ¥9.9</div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-24 px-4">
+      {/* Pricing Preview */}
+      <section className="py-16 px-4 bg-white">
+        <div className="max-w-5xl mx-auto text-center">
+          <h2 className="text-3xl font-bold text-green-900 mb-2">先试后付</h2>
+          <p className="text-gray-500 mb-8">预览带水印免费，满意再付费</p>
+          <div className="flex justify-center gap-6 flex-wrap">
+            <div className="bg-green-50 rounded-2xl p-6 w-56 border border-green-100">
+              <div className="text-sm font-medium text-green-600 mb-1">预览体验</div>
+              <div className="text-2xl font-bold text-green-800 mb-3">免费</div>
+              <ul className="text-xs text-gray-500 space-y-1.5 text-left">
+                <li className="flex items-center gap-1"><Check size={12} className="text-green-500 shrink-0" /> 上传预览生成效果</li>
+                <li className="flex items-center gap-1"><Check size={12} className="text-green-500 shrink-0" /> 带水印下载</li>
+              </ul>
+            </div>
+            <div className="bg-green-600 rounded-2xl p-6 w-56 text-white shadow-xl scale-105">
+              <div className="text-sm font-medium text-green-200 mb-1">单次生成</div>
+              <div className="text-2xl font-bold mb-3">¥9.9</div>
+              <ul className="text-xs text-green-100 space-y-1.5 text-left">
+                <li className="flex items-center gap-1"><Check size={12} className="text-white shrink-0" /> 全套物料高清无水印</li>
+                <li className="flex items-center gap-1"><Check size={12} className="text-white shrink-0" /> 多平台适配</li>
+              </ul>
+            </div>
+            <div className="bg-green-50 rounded-2xl p-6 w-56 border border-green-100">
+              <div className="text-sm font-medium text-green-600 mb-1">月卡</div>
+              <div className="text-2xl font-bold text-green-800 mb-3">¥49</div>
+              <ul className="text-xs text-gray-500 space-y-1.5 text-left">
+                <li className="flex items-center gap-1"><Check size={12} className="text-green-500 shrink-0" /> 30次生成</li>
+                <li className="flex items-center gap-1"><Check size={12} className="text-green-500 shrink-0" /> 全部品类模板</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-16 px-4">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-green-900 mb-4">
-            今天就开始
+          <h2 className="text-3xl font-bold text-green-900 mb-4">
+            拍一张照片，出整月物料
           </h2>
-          <p className="text-gray-500 text-lg mb-8">
-            让AI帮你搞定餐饮营销，把时间省下来做好每一道菜
+          <p className="text-gray-500 mb-8">
+            上传菜品照片，生成全平台营销素材
           </p>
-          <Link
-            href="/auth/register"
-            className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-full text-lg font-medium transition inline-flex items-center gap-2 shadow-lg shadow-green-200 hover:shadow-xl hover:shadow-green-200"
+          <button
+            onClick={() => document.querySelector('[class*="border-dashed"]')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-full text-lg font-medium transition inline-flex items-center gap-2 shadow-lg shadow-green-200"
           >
-            免费开始使用
+            开始使用
             <ArrowRight size={18} />
-          </Link>
+          </button>
         </div>
       </section>
 
