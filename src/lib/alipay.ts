@@ -24,6 +24,12 @@ export function getAlipaySdk(): AlipaySdk | null {
 }
 
 export const PAYMENT_PLANS = {
+  trial: {
+    price: 0.1,
+    credits: 5,
+    name: '体验版',
+    description: '5张AI图片 + 5个AI视频 + 不限文案',
+  },
   basic: {
     price: 99,
     credits: 20,

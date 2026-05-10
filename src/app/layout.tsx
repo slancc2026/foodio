@@ -6,8 +6,8 @@ import Providers from '@/components/Providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Foodio AI - 餐饮商家自媒体宣传工具',
-  description: 'AI生成菜品照片、宣传文案和短视频，餐饮营销从未如此简单',
+  title: 'FoodieMark - 餐饮商家多平台获客引擎',
+  description: '上传菜品照片，一站式生成美团、小红书、抖音、朋友圈营销物料',
 };
 
 export default function RootLayout({

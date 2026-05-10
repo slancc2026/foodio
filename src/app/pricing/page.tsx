@@ -22,14 +22,23 @@ const plans = [
     planKey: 'free' as const,
   },
   {
+    name: '体验版',
+    price: '0.1',
+    period: '/月',
+    description: '超低门槛体验全部功能',
+    features: ['5张AI图片', '5个AI视频', '不限文案生成', '全部模板和风格', '小红书优化模板'],
+    cta: '立即体验',
+    highlight: true,
+    planKey: 'trial' as const,
+  },
+  {
     name: '基础版',
     price: '99',
     period: '/月',
     description: '适合起步阶段',
     features: ['20张AI图片', '10个AI视频', '不限文案生成', '小红书优化模板', '标准客户支持'],
     cta: '立即订阅',
-    href: '/auth/register',
-    highlight: true,
+    highlight: false,
     planKey: 'basic' as const,
   },
   {
@@ -59,7 +68,7 @@ export default function PricingPage() {
   const [qrOutTradeNo, setQrOutTradeNo] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  async function handlePurchase(planKey: 'basic' | 'pro') {
+  async function handlePurchase(planKey: 'trial' | 'basic' | 'pro') {
     setLoading(planKey);
 
     try {
