@@ -60,7 +60,8 @@ export default function Home() {
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [resultImages, setResultImages] = useState<string[]>([]);
+  const [resultImages, setResultImages] = useState<{platform: string; size: string; desc: string; url: string | null; base64: string | null; error?: string}[]>([]);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,23 +87,43 @@ export default function Home() {
     if (!image || !category || generating) return;
     setGenerating(true);
     setProgress(0);
+    setGenerateError(null);
 
-    // Simulate progress for now (actual API call later)
-    const totalSteps = 8;
-    for (let i = 1; i <= totalSteps; i++) {
-      await new Promise(r => setTimeout(r, 800));
-      setProgress(Math.round((i / totalSteps) * 100));
+    // 进度模拟
+    const progressInterval = setInterval(() => {
+      setProgress((p) => Math.min(p + Math.random() * 15, 90));
+    }, 2000);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', image);
+      formData.append('category', category);
+
+      const resp = await fetch('/api/generate/foodie', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!resp.ok) {
+        const errData = await resp.json();
+        throw new Error(errData.error || '生成失败');
+      }
+
+      const data = await resp.json();
+      if (data.success && data.images) {
+        setResultImages(data.images);
+      } else {
+        throw new Error(data.error || '生成返回格式异常');
+      }
+    } catch (err: any) {
+      setGenerateError(err.message || '生成失败，请重试');
+      setResultImages([]);
+    } finally {
+      clearInterval(progressInterval);
+      setProgress(100);
+      setGenerating(false);
+      setGenerated(true);
     }
-
-    // Placeholder: will integrate with 通义万相 API
-    setResultImages([
-      '/placeholder-result-1.jpg',
-      '/placeholder-result-2.jpg',
-      '/placeholder-result-3.jpg',
-      '/placeholder-result-4.jpg',
-    ]);
-    setGenerating(false);
-    setGenerated(true);
   }, [image, category, generating]);
 
   const resetAll = useCallback(() => {
@@ -276,39 +297,70 @@ export default function Home() {
                     <div>
                       <h3 className="font-semibold text-green-800 flex items-center gap-2">
                         <Check size={18} className="text-green-600" />
-                        生成完成！
+                        {generateError ? '生成失败' : '生成完成！'}
                       </h3>
                       <p className="text-xs text-gray-400 mt-0.5">
                         {selectedCategory?.emoji} {selectedCategory?.name} · 全平台适配
                       </p>
                     </div>
-                    <button
-                      onClick={() => alert('注册后可下载无水印高清版')}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition flex items-center gap-1.5"
-                    >
-                      <Download size={14} />
-                      下载全套
-                    </button>
+                    {!generateError && resultImages.length > 0 && (
+                      <button
+                        onClick={() => alert('注册后可下载无水印高清版')}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition flex items-center gap-1.5"
+                      >
+                        <Download size={14} />
+                        下载全套
+                      </button>
+                    )}
                   </div>
 
-                  {/* Mock result display */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {PLATFORMS.map((platform, i) => (
-                      <div key={platform.id} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                        <div className="text-xs font-medium text-gray-400 mb-2 text-center">{platform.name} · {platform.ratio}</div>
-                        <div className={`${platform.ratio === '9:16' ? 'aspect-[9/16]' : 'aspect-square'} bg-gradient-to-br from-green-100 via-white to-orange-50 rounded-lg flex items-center justify-center border border-gray-100`}>
-                          <div className="text-center p-2">
-                            <div className="text-2xl mb-1">{selectedCategory?.emoji || '🍽️'}</div>
-                            <div className="text-[10px] text-gray-400">{platform.desc}</div>
-                            <div className="text-[10px] font-medium text-green-600 mt-1">FoodieMark</div>
+                  {generateError ? (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+                      <p className="text-red-600 font-medium mb-2">😅 {generateError}</p>
+                      <p className="text-sm text-red-400">请稍后重试，或联系客服</p>
+                      <button
+                        onClick={resetAll}
+                        className="mt-4 text-sm text-green-600 hover:text-green-700 underline"
+                      >
+                        重新上传
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {PLATFORMS.map((platform, i) => {
+                        const img = resultImages[i];
+                        return (
+                          <div key={platform.id} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                            <div className="text-xs font-medium text-gray-400 mb-2 text-center">{platform.name} · {platform.ratio}</div>
+                            <div className={`${platform.ratio === '9:16' ? 'aspect-[9/16]' : 'aspect-square'} rounded-lg overflow-hidden border border-gray-100 bg-gray-100 relative`}>
+                              {img?.base64 ? (
+                                <img
+                                  src={img.base64}
+                                  alt={`${platform.name}生成图`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <div className="text-center p-2">
+                                    <div className="text-2xl mb-1">{selectedCategory?.emoji || '🍽️'}</div>
+                                    <div className="text-[10px] text-gray-400">{platform.desc}</div>
+                                  </div>
+                                </div>
+                              )}
+                              {/* Watermark overlay */}
+                              <div className="absolute bottom-1 right-1 bg-black/40 text-white text-[8px] px-1.5 py-0.5 rounded">
+                                FoodieMark
+                              </div>
+                            </div>
+                            <div className="text-[10px] text-gray-400 mt-1.5 text-center">
+                              {img?.error || '预览带水印 · 注册后可下载'}
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-[10px] text-gray-400 mt-1.5 text-center">预览带水印 · 注册后可下载</div>
-                      </div>
-                    ))}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
-                  {/* Note */}
                   <div className="mt-4 text-center">
                     <p className="text-xs text-gray-400">
                       免费预览带水印 · 下载无水印高清版请
